@@ -29,6 +29,7 @@ export function useUpdateProfile() {
     },
     onSuccess: (profile) => {
       dispatch(setUser(profile as User));
+      queryClient.setQueryData(["me"], profile);
       queryClient.invalidateQueries({ queryKey: ["me"] });
     },
   });
