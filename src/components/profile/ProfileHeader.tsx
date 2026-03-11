@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Send2 } from "iconsax-react";
 import { UserProfile } from "@/types";
 import ProfileStats from "./ProfileStats";
 import FollowButton from "@/components/user/FollowButton";
@@ -21,13 +22,13 @@ export default function ProfileHeader({ profile, isOwn = false }: ProfileHeaderP
   ];
 
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-center gap-6 pb-6 border-b border-neutral-900">
+    <div className="flex items-start gap-5 pb-6 border-b border-neutral-900">
       {/* Avatar */}
       <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-neutral-900 flex items-center justify-center shrink-0">
         {profile.avatar ? (
           <Image
             src={profile.avatar}
-            alt={profile.name}
+            alt={profile.name ?? "avatar"}
             width={96}
             height={96}
             className="object-cover w-full h-full"
@@ -40,28 +41,40 @@ export default function ProfileHeader({ profile, isOwn = false }: ProfileHeaderP
       </div>
 
       {/* Info */}
-      <div className="flex-1">
-        <div className="flex items-center gap-4 mb-1">
+      <div className="flex-1 min-w-0">
+        {/* Name + Buttons row */}
+        <div className="flex items-center gap-3 flex-wrap mb-1">
           <h1 className="text-xl-bold text-neutral-25">{profile.name}</h1>
           {isOwn ? (
-            <Link href="/me/edit">
-              <Button variant="outline" className="h-9 px-5 text-sm-bold">
-                Edit Profile
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2 ml-auto">
+              <Link href="/me/edit">
+                <Button variant="outline" className="h-9 px-5 text-sm-bold">
+                  Edit Profile
+                </Button>
+              </Link>
+              <button className="w-9 h-9 rounded-full border border-neutral-900 flex items-center justify-center text-neutral-400 hover:text-neutral-25 transition-colors">
+                <Send2 size={16} color="currentColor" />
+              </button>
+            </div>
           ) : (
-            <FollowButton
-              username={profile.username}
-              isFollowing={profile.isFollowing ?? false}
-            />
+            <div className="ml-auto">
+              <FollowButton
+                username={profile.username}
+                isFollowing={profile.isFollowing ?? false}
+              />
+            </div>
           )}
         </div>
-        <p className="text-md-regular text-neutral-400 mb-4">
-          @{profile.username}
-        </p>
+
+        {/* Username */}
+        <p className="text-md-regular text-neutral-400 mb-2">{profile.username}</p>
+
+        {/* Bio */}
         {profile.bio && (
           <p className="text-md-regular text-neutral-25 mb-4">{profile.bio}</p>
         )}
+
+        {/* Stats */}
         <ProfileStats stats={stats} />
       </div>
     </div>
