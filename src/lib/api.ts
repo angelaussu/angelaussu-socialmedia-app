@@ -148,7 +148,16 @@ export const profileApi = {
     return normalizeUserProfile(merged);
   },
 
-  updateMe: (data: FormData) => apiRequest("/api/me", { method: "PATCH", body: data }),
+  updateMe: async (data: FormData) => {
+    // If there's an avatar file, send as multipart FormData; otherwise send as JSON
+    if (data.has("avatar") && (data.get("avatar") as File)?.size > 0) {
+      return apiRequest("/api/me", { method: "PATCH", body: data });
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json: Record<string, any> = {};
+    data.forEach((value, key) => { if (key !== "avatar") json[key] = value; });
+    return apiRequest("/api/me", { method: "PATCH", body: JSON.stringify(json) });
+  },
 };
 
 // ── Users ─────────────────────────────────────────────────

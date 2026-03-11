@@ -54,7 +54,7 @@ export default function EditProfilePage() {
   function onSubmit(data: EditProfileFormData) {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
-      if (value) formData.append(key, value);
+      if (value !== undefined && value !== null) formData.append(key, String(value));
     });
     if (avatarFile) formData.append("avatar", avatarFile);
 
