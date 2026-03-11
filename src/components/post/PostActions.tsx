@@ -1,37 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Heart, MessageText1, Send2, ArchiveBook } from "iconsax-react";
 import { Post } from "@/types";
 import { useToggleLike, useToggleSave } from "@/hooks/usePosts";
 import { useAppDispatch } from "@/store/hooks";
 import { openCommentModal, openLikedByModal } from "@/store/uiSlice";
+import { getCachedLiked, getCachedSaved, setCachedLiked, setCachedSaved } from "@/lib/interactionCache";
 
 export default function PostActions({ post }: { post: Post }) {
   const dispatch = useAppDispatch();
-  const [liked, setLiked] = useState(post.isLiked ?? false);
-  const [saved, setSaved] = useState(post.isSaved ?? false);
+  const [liked, setLiked] = useState(() => getCachedLiked(post.id) || (post.isLiked ?? false));
+  const [saved, setSaved] = useState(() => getCachedSaved(post.id) || (post.isSaved ?? false));
   const [likesCount, setLikesCount] = useState(post.likesCount);
 
-  useEffect(() => {
-    setLiked(post.isLiked ?? false);
-    setSaved(post.isSaved ?? false);
-    setLikesCount(post.likesCount);
-  }, [post.isLiked, post.isSaved, post.likesCount]);
-
-  const likeMutation = useToggleLike(post.id, liked);
-  const saveMutation = useToggleSave(post.id, saved);
+  const likeMutation = useToggleLike(post.id, liked, post);
+  const saveMutation = useToggleSave(post.id);
 
   function handleLike() {
     const newLiked = !liked;
     setLiked(newLiked);
+    setCachedLiked(post.id, newLiked, post);
     setLikesCount((v) => (newLiked ? v + 1 : v - 1));
     likeMutation.mutate();
   }
 
   function handleSave() {
-    setSaved((v) => !v);
-    saveMutation.mutate();
+    const newSaved = !saved;
+    setSaved(newSaved);
+    setCachedSaved(post.id, newSaved, post);
+    saveMutation.mutate(saved, {
+      onError: () => {
+        setSaved(saved);
+        setCachedSaved(post.id, saved);
+      },
+    });
   }
 
   return (

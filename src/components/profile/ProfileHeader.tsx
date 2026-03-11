@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Send2 } from "iconsax-react";
@@ -5,13 +7,26 @@ import { UserProfile } from "@/types";
 import ProfileStats from "./ProfileStats";
 import FollowButton from "@/components/user/FollowButton";
 import Button from "@/components/ui/Button";
+import { useAppDispatch } from "@/store/hooks";
+import { showAlert } from "@/store/uiSlice";
 
 interface ProfileHeaderProps {
   profile: UserProfile;
   isOwn?: boolean;
 }
 
-export default function ProfileHeader({ profile, isOwn = false }: ProfileHeaderProps) {
+export default function ProfileHeader({
+  profile,
+  isOwn = false,
+}: ProfileHeaderProps) {
+  const dispatch = useAppDispatch();
+
+  function handleShareProfile() {
+    const url = `${window.location.origin}/profile/${profile.username}`;
+    navigator.clipboard.writeText(url).then(() => {
+      dispatch(showAlert({ message: "Profile link copied!", type: "success" }));
+    });
+  }
   const stats = [
     { label: "Posts", value: profile.postsCount },
     { label: "Followers", value: profile.followersCount },
@@ -45,29 +60,32 @@ export default function ProfileHeader({ profile, isOwn = false }: ProfileHeaderP
         {/* Name + Buttons row */}
         <div className="flex items-center gap-3 flex-wrap mb-1">
           <h1 className="text-xl-bold text-neutral-25">{profile.name}</h1>
-          {isOwn ? (
-            <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 ml-auto">
+            {isOwn ? (
               <Link href="/me/edit">
                 <Button variant="outline" className="h-9 px-5 text-sm-bold">
                   Edit Profile
                 </Button>
               </Link>
-              <button className="w-9 h-9 rounded-full border border-neutral-900 flex items-center justify-center text-neutral-400 hover:text-neutral-25 transition-colors">
-                <Send2 size={16} color="currentColor" />
-              </button>
-            </div>
-          ) : (
-            <div className="ml-auto">
+            ) : (
               <FollowButton
                 username={profile.username}
                 isFollowing={profile.isFollowing ?? false}
               />
-            </div>
-          )}
+            )}
+            <button
+              onClick={handleShareProfile}
+              className="w-9 h-9 rounded-full border border-neutral-900 flex items-center justify-center text-neutral-400 hover:text-neutral-25 transition-colors"
+            >
+              <Send2 size={16} color="currentColor" />
+            </button>
+          </div>
         </div>
 
         {/* Username */}
-        <p className="text-md-regular text-neutral-400 mb-2">{profile.username}</p>
+        <p className="text-md-regular text-neutral-400 mb-2">
+          {profile.username}
+        </p>
 
         {/* Bio */}
         {profile.bio && (

@@ -83,21 +83,64 @@ export function useMySaved() {
   });
 }
 
-export function useToggleLike(postId: string, isLiked: boolean) {
+export function useToggleLike(postId: string, isLiked: boolean, post?: Post) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => (isLiked ? likesApi.unlike(postId) : likesApi.like(postId)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["feed"] });
+    onSuccess: (data: any) => {
+      const newIsLiked = !isLiked;
+      const newCount = data?.likeCount ?? undefined;
+      // Update feed cache directly
+      queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            data: page.data.map((p: Post) =>
+              p.id === postId
+                ? { ...p, isLiked: newIsLiked, likesCount: newCount ?? p.likesCount + (newIsLiked ? 1 : -1) }
+                : p
+            ),
+          })),
+        };
+      });
+      // Update myLikes cache directly
+      if (post) {
+        queryClient.setQueryData(["myLikes"], (old: any) => {
+          if (!old?.pages) return old;
+          if (newIsLiked) {
+            // Add post to first page
+            return {
+              ...old,
+              pages: old.pages.map((page: any, i: number) =>
+                i === 0
+                  ? { ...page, data: [{ ...post, isLiked: true }, ...page.data.filter((p: Post) => p.id !== postId)] }
+                  : page
+              ),
+            };
+          } else {
+            // Remove post from all pages
+            return {
+              ...old,
+              pages: old.pages.map((page: any) => ({
+                ...page,
+                data: page.data.filter((p: Post) => p.id !== postId),
+              })),
+            };
+          }
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
     },
   });
 }
 
-export function useToggleSave(postId: string, isSaved: boolean) {
+export function useToggleSave(postId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => (isSaved ? savesApi.unsave(postId) : savesApi.save(postId)),
+    mutationFn: (currentlySaved: boolean) =>
+      currentlySaved ? savesApi.unsave(postId) : savesApi.save(postId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feed"] });
       queryClient.invalidateQueries({ queryKey: ["explore"] });

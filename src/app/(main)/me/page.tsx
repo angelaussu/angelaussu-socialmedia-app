@@ -7,6 +7,7 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import GalleryGrid from "@/components/profile/GalleryGrid";
 import { Post } from "@/types";
+import { getCachedLikedPosts, getCachedSavedPosts } from "@/lib/interactionCache";
 
 const TABS = [
   { key: "gallery", label: "Gallery" },
@@ -23,8 +24,22 @@ export default function MyProfilePage() {
   const { data: likedData } = useMyLikes();
 
   const posts = postsData?.pages.flatMap((p) => p.data) ?? [];
-  const saved = savedData?.pages.flatMap((p) => p.data) ?? [];
-  const liked = likedData?.pages.flatMap((p) => p.data) ?? [];
+
+  // Merge server data with local cache (local cache takes priority for freshness)
+  const serverSaved = savedData?.pages.flatMap((p) => p.data) ?? [];
+  const serverLiked = likedData?.pages.flatMap((p) => p.data) ?? [];
+  const localLiked = getCachedLikedPosts();
+  const localSaved = getCachedSavedPosts();
+
+  // Merge: local posts first, then server posts that aren't already in local
+  const liked = [
+    ...localLiked,
+    ...serverLiked.filter((p) => !localLiked.some((lp) => lp.id === p.id)),
+  ];
+  const saved = [
+    ...localSaved,
+    ...serverSaved.filter((p) => !localSaved.some((lp) => lp.id === p.id)),
+  ];
 
   if (isLoading) {
     return (
