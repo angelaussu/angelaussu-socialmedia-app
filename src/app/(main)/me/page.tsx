@@ -11,6 +11,7 @@ import { Post } from "@/types";
 const TABS = [
   { key: "gallery", label: "Gallery" },
   { key: "saved", label: "Saved" },
+  { key: "liked", label: "Liked" },
 ];
 
 export default function MyProfilePage() {
@@ -19,9 +20,11 @@ export default function MyProfilePage() {
 
   const { data: postsData } = useUserPosts(profile?.username ?? "");
   const { data: savedData } = useMySaved();
+  const { data: likedData } = useMyLikes();
 
   const posts = postsData?.pages.flatMap((p) => p.data) ?? [];
   const saved = savedData?.pages.flatMap((p) => p.data) ?? [];
+  const liked = likedData?.pages.flatMap((p) => p.data) ?? [];
 
   if (isLoading) {
     return (
@@ -33,7 +36,8 @@ export default function MyProfilePage() {
 
   if (!profile) return null;
 
-  const displayPosts: Post[] = activeTab === "gallery" ? posts : saved;
+  const displayPosts: Post[] =
+    activeTab === "gallery" ? posts : activeTab === "saved" ? saved : liked;
 
   return (
     <div className="w-full max-w-[812px] mx-auto px-4">

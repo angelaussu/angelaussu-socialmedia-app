@@ -23,9 +23,12 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   return useMutation({
-    mutationFn: (data: FormData) => profileApi.updateMe(data) as Promise<User>,
-    onSuccess: (user) => {
-      dispatch(setUser(user));
+    mutationFn: async (data: FormData) => {
+      await profileApi.updateMe(data);
+      return profileApi.getMe();
+    },
+    onSuccess: (profile) => {
+      dispatch(setUser(profile as User));
       queryClient.invalidateQueries({ queryKey: ["me"] });
     },
   });

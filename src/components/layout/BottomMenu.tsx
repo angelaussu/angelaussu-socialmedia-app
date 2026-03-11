@@ -26,7 +26,7 @@ export default function BottomMenu() {
             color="currentColor"
             variant={isHome ? "Bold" : "Linear"}
           />
-          <span className="hidden sm:block">Home</span>
+          <span>Home</span>
         </Link>
 
         <Link href="/posts/create">
@@ -47,7 +47,7 @@ export default function BottomMenu() {
             color="currentColor"
             variant={isProfile ? "Bold" : "Linear"}
           />
-          <span className="hidden sm:block">Profile</span>
+          <span>Profile</span>
         </Link>
       </div>
     </nav>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Heart, MessageText1, Send2, ArchiveBook } from "iconsax-react";
 import { Post } from "@/types";
 import { useToggleLike, useToggleSave } from "@/hooks/usePosts";
@@ -8,8 +9,30 @@ import { openCommentModal, openLikedByModal } from "@/store/uiSlice";
 
 export default function PostActions({ post }: { post: Post }) {
   const dispatch = useAppDispatch();
-  const likeMutation = useToggleLike(post.id, post.isLiked ?? false);
-  const saveMutation = useToggleSave(post.id, post.isSaved ?? false);
+  const [liked, setLiked] = useState(post.isLiked ?? false);
+  const [saved, setSaved] = useState(post.isSaved ?? false);
+  const [likesCount, setLikesCount] = useState(post.likesCount);
+
+  useEffect(() => {
+    setLiked(post.isLiked ?? false);
+    setSaved(post.isSaved ?? false);
+    setLikesCount(post.likesCount);
+  }, [post.isLiked, post.isSaved, post.likesCount]);
+
+  const likeMutation = useToggleLike(post.id, liked);
+  const saveMutation = useToggleSave(post.id, saved);
+
+  function handleLike() {
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikesCount((v) => (newLiked ? v + 1 : v - 1));
+    likeMutation.mutate();
+  }
+
+  function handleSave() {
+    setSaved((v) => !v);
+    saveMutation.mutate();
+  }
 
   return (
     <div className="flex items-center justify-between mt-4">
@@ -17,21 +40,21 @@ export default function PostActions({ post }: { post: Post }) {
         {/* Like */}
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => likeMutation.mutate()}
+            onClick={handleLike}
             disabled={likeMutation.isPending}
             className="transition-transform active:scale-90"
           >
             <Heart
               size={24}
-              color={post.isLiked ? "#ff3b5c" : "#a4a7ae"}
-              variant={post.isLiked ? "Bold" : "Linear"}
+              color={liked ? "#ff3b5c" : "#a4a7ae"}
+              variant={liked ? "Bold" : "Linear"}
             />
           </button>
           <button
             onClick={() => dispatch(openLikedByModal(post.id))}
             className="text-md-semibold text-neutral-25 hover:text-brand-200 transition-colors"
           >
-            {post.likesCount}
+            {likesCount}
           </button>
         </div>
 
@@ -41,9 +64,7 @@ export default function PostActions({ post }: { post: Post }) {
           className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
         >
           <MessageText1 size={24} color="#a4a7ae" variant="Linear" />
-          <span className="text-md-semibold text-neutral-25">
-            {post.commentsCount}
-          </span>
+          <span className="text-md-semibold text-neutral-25">{post.commentsCount}</span>
         </button>
 
         {/* Share */}
@@ -54,14 +75,14 @@ export default function PostActions({ post }: { post: Post }) {
 
       {/* Save */}
       <button
-        onClick={() => saveMutation.mutate()}
+        onClick={handleSave}
         disabled={saveMutation.isPending}
         className="transition-transform active:scale-90"
       >
         <ArchiveBook
           size={24}
-          color={post.isSaved ? "#7f51f9" : "#a4a7ae"}
-          variant={post.isSaved ? "Bold" : "Linear"}
+          color={saved ? "#7f51f9" : "#a4a7ae"}
+          variant={saved ? "Bold" : "Linear"}
         />
       </button>
     </div>

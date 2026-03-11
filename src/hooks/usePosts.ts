@@ -100,7 +100,9 @@ export function useToggleSave(postId: string, isSaved: boolean) {
     mutationFn: () => (isSaved ? savesApi.unsave(postId) : savesApi.save(postId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feed"] });
+      queryClient.invalidateQueries({ queryKey: ["explore"] });
       queryClient.invalidateQueries({ queryKey: ["mySaved"] });
+      queryClient.invalidateQueries({ queryKey: ["post", postId] });
     },
   });
 }

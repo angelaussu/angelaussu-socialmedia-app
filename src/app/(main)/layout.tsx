@@ -9,7 +9,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <div className="min-h-screen bg-base-black">
         <Header />
         <Alert />
-        <main className="pt-6 pb-32">{children}</main>
+        <main className="pt-4 md:pt-6 pb-36">{children}</main>
         <BottomMenu />
       </div>
     </AuthGuard>
