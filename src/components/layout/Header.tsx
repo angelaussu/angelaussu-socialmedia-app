@@ -65,6 +65,9 @@ export default function Header() {
               onClick={() => setDropdownOpen((v) => !v)}
               className="flex items-center gap-2 md:gap-3"
             >
+              <span className="text-md-bold text-neutral-25 hidden lg:block">
+                {user.name || user.username}
+              </span>
               <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden bg-neutral-900 flex items-center justify-center">
                 {user.avatar ? (
                   <Image
@@ -80,9 +83,6 @@ export default function Header() {
                   </span>
                 )}
               </div>
-              <span className="text-md-bold text-neutral-25 hidden lg:block">
-                {user.name || user.username}
-              </span>
             </button>
 
             {dropdownOpen && (
