@@ -2,6 +2,8 @@
 
 A dark-themed social media web app where users can post photos, follow each other, like and comment on posts.
 
+**Live Demo:** [https://angelaussu-socialmedia-app.vercel.app](https://angelaussu-socialmedia-app.vercel.app)
+
 ## Tech Stack
 
 - **Next.js 16** — App Router, TypeScript
