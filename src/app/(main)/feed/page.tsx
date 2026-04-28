@@ -51,7 +51,8 @@ function FeedTab() {
     },
     [isFetchingNextPage, hasNextPage, fetchNextPage]
   );
-  const posts = data?.pages.flatMap((page) => page.data) ?? [];
+  const seen = new Set<string>();
+  const posts = (data?.pages.flatMap((page) => page.data) ?? []).filter((p) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-300 border-t-transparent rounded-full animate-spin" /></div>;
   if (isError) return <EmptyState title="Failed to load feed" description="Something went wrong. Please refresh the page." />;
   if (posts.length === 0) return <EmptyState title="Your feed is empty" description="Follow some people to see their posts here." />;
@@ -72,7 +73,8 @@ function ExploreTab() {
     },
     [isFetchingNextPage, hasNextPage, fetchNextPage]
   );
-  const posts = data?.pages.flatMap((page) => page.data) ?? [];
+  const seen2 = new Set<string>();
+  const posts = (data?.pages.flatMap((page) => page.data) ?? []).filter((p) => { if (seen2.has(p.id)) return false; seen2.add(p.id); return true; });
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-300 border-t-transparent rounded-full animate-spin" /></div>;
   if (isError) return <EmptyState title="Failed to load posts" description="Something went wrong. Please refresh the page." />;
   if (posts.length === 0) return <EmptyState title="No posts yet" description="Be the first to post something!" />;

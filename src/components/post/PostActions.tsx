@@ -14,25 +14,33 @@ export default function PostActions({ post }: { post: Post }) {
   const [saved, setSaved] = useState(() => getCachedSaved(post.id) || (post.isSaved ?? false));
   const [likesCount, setLikesCount] = useState(post.likesCount);
 
-  const likeMutation = useToggleLike(post.id, liked, post);
+  const likeMutation = useToggleLike(post.id);
   const saveMutation = useToggleSave(post.id);
 
   function handleLike() {
+    const prev = liked;
     const newLiked = !liked;
     setLiked(newLiked);
     setCachedLiked(post.id, newLiked, post);
-    setLikesCount((v) => (newLiked ? v + 1 : v - 1));
-    likeMutation.mutate();
+    setLikesCount((v) => v + (newLiked ? 1 : -1));
+    likeMutation.mutate(liked, {
+      onError: () => {
+        setLiked(prev);
+        setCachedLiked(post.id, prev);
+        setLikesCount((v) => v - (newLiked ? 1 : -1));
+      },
+    });
   }
 
   function handleSave() {
+    const prev = saved;
     const newSaved = !saved;
     setSaved(newSaved);
     setCachedSaved(post.id, newSaved, post);
     saveMutation.mutate(saved, {
       onError: () => {
-        setSaved(saved);
-        setCachedSaved(post.id, saved);
+        setSaved(prev);
+        setCachedSaved(post.id, prev);
       },
     });
   }

@@ -83,54 +83,54 @@ export function useMySaved() {
   });
 }
 
-export function useToggleLike(postId: string, isLiked: boolean, post?: Post) {
+function updatePostInPages(pages: PaginatedResponse<Post>[], postId: string, updater: (p: Post) => Post) {
+  return pages.map((page) => ({
+    ...page,
+    data: page.data.map((p) => (p.id === postId ? updater(p) : p)),
+  }));
+}
+
+export function useToggleLike(postId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => (isLiked ? likesApi.unlike(postId) : likesApi.like(postId)),
-    onSuccess: (data: any) => {
+    mutationFn: (isLiked: boolean) =>
+      isLiked ? likesApi.unlike(postId) : likesApi.like(postId),
+    onMutate: async (isLiked: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ["feed"] });
+      await queryClient.cancelQueries({ queryKey: ["explore"] });
+      await queryClient.cancelQueries({ queryKey: ["post", postId] });
+
+      const prevFeed = queryClient.getQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["feed"] });
+      const prevExplore = queryClient.getQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["explore"] });
+      const prevPost = queryClient.getQueryData<Post>(["post", postId]);
+
       const newIsLiked = !isLiked;
-      const newCount = data?.likeCount ?? undefined;
-      // Update feed cache directly
-      queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page: any) => ({
-            ...page,
-            data: page.data.map((p: Post) =>
-              p.id === postId
-                ? { ...p, isLiked: newIsLiked, likesCount: newCount ?? p.likesCount + (newIsLiked ? 1 : -1) }
-                : p
-            ),
-          })),
-        };
+      const update = (p: Post) => ({
+        ...p,
+        isLiked: newIsLiked,
+        likesCount: p.likesCount + (newIsLiked ? 1 : -1),
       });
-      // Update myLikes cache directly
-      if (post) {
-        queryClient.setQueryData(["myLikes"], (old: any) => {
-          if (!old?.pages) return old;
-          if (newIsLiked) {
-            // Add post to first page
-            return {
-              ...old,
-              pages: old.pages.map((page: any, i: number) =>
-                i === 0
-                  ? { ...page, data: [{ ...post, isLiked: true }, ...page.data.filter((p: Post) => p.id !== postId)] }
-                  : page
-              ),
-            };
-          } else {
-            // Remove post from all pages
-            return {
-              ...old,
-              pages: old.pages.map((page: any) => ({
-                ...page,
-                data: page.data.filter((p: Post) => p.id !== postId),
-              })),
-            };
-          }
-        });
+
+      queryClient.setQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["feed"] }, (old) => {
+        if (!old?.pages) return old;
+        return { ...old, pages: updatePostInPages(old.pages, postId, update) };
+      });
+      queryClient.setQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["explore"] }, (old) => {
+        if (!old?.pages) return old;
+        return { ...old, pages: updatePostInPages(old.pages, postId, update) };
+      });
+      if (prevPost) {
+        queryClient.setQueryData<Post>(["post", postId], update(prevPost));
       }
+
+      return { prevFeed, prevExplore, prevPost };
+    },
+    onError: (_err, _isLiked, context) => {
+      context?.prevFeed?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      context?.prevExplore?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      if (context?.prevPost) queryClient.setQueryData(["post", postId], context.prevPost);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
     },
   });
@@ -139,13 +139,55 @@ export function useToggleLike(postId: string, isLiked: boolean, post?: Post) {
 export function useToggleSave(postId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (currentlySaved: boolean) =>
-      currentlySaved ? savesApi.unsave(postId) : savesApi.save(postId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["feed"] });
-      queryClient.invalidateQueries({ queryKey: ["explore"] });
+    mutationFn: (isSaved: boolean) =>
+      isSaved ? savesApi.unsave(postId) : savesApi.save(postId),
+    onMutate: async (isSaved: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ["feed"] });
+      await queryClient.cancelQueries({ queryKey: ["explore"] });
+
+      const prevFeed = queryClient.getQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["feed"] });
+      const prevExplore = queryClient.getQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["explore"] });
+
+      const newIsSaved = !isSaved;
+      const update = (p: Post) => ({ ...p, isSaved: newIsSaved });
+
+      queryClient.setQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["feed"] }, (old) => {
+        if (!old?.pages) return old;
+        return { ...old, pages: updatePostInPages(old.pages, postId, update) };
+      });
+      queryClient.setQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["explore"] }, (old) => {
+        if (!old?.pages) return old;
+        return { ...old, pages: updatePostInPages(old.pages, postId, update) };
+      });
+
+      return { prevFeed, prevExplore };
+    },
+    onError: (_err, _isSaved, context) => {
+      context?.prevFeed?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      context?.prevExplore?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["mySaved"] });
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
+    },
+  });
+}
+
+export function useCreatePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (formData: FormData) => postsApi.create(formData),
+    onSuccess: (newPost) => {
+      queryClient.setQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["feed"] }, (old) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page, i) =>
+            i === 0 ? { ...page, data: [newPost, ...page.data] } : page
+          ),
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: ["userPosts"] });
     },
   });
 }
@@ -154,7 +196,25 @@ export function useDeletePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (postId: string) => postsApi.delete(postId),
-    onSuccess: () => {
+    onMutate: async (postId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["feed"] });
+      const prevFeed = queryClient.getQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["feed"] });
+      queryClient.setQueriesData<{ pages: PaginatedResponse<Post>[] }>({ queryKey: ["feed"] }, (old) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            data: page.data.filter((p) => p.id !== postId),
+          })),
+        };
+      });
+      return { prevFeed };
+    },
+    onError: (_err, _postId, context) => {
+      context?.prevFeed?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["feed"] });
       queryClient.invalidateQueries({ queryKey: ["userPosts"] });
     },

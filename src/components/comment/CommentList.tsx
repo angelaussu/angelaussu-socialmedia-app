@@ -14,7 +14,7 @@ dayjs.extend(relativeTime);
 export default function CommentList({ postId }: { postId: string }) {
   const { data, isLoading, fetchNextPage, hasNextPage } = useComments(postId);
   const currentUser = useAppSelector((state) => state.auth.user);
-  const deleteMutation = useDeleteComment();
+  const deleteMutation = useDeleteComment(postId);
 
   const comments = data?.pages.flatMap((p) => p.data) ?? [];
 
